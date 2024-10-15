@@ -10,12 +10,17 @@ public class ProjectileLauncher : NetworkBehaviour
     [SerializeField] Transform projectileSpawnPoint;
     [SerializeField] GameObject serverProjectilePrefab;
     [SerializeField] GameObject clientProjectilePrefab;
+    [SerializeField] GameObject muzzleFlash;
+    [SerializeField] Collider2D playerCollider;
 
     [Header("Settings")]
     [SerializeField] float projectileSpeed;
-
+    [SerializeField] float fireRate;
+    [SerializeField] float muzzleFlashDuration;
     private bool shouldFire;
-
+    
+    private float previousFireTime;
+    private float muzzleFlashTimer;
     public override void OnNetworkSpawn()
     {
         if (!IsOwner) return;
@@ -30,13 +35,29 @@ public class ProjectileLauncher : NetworkBehaviour
 
     void Update()
     {
+        if (muzzleFlashTimer > 0f)
+        {
+            muzzleFlashTimer -= Time.deltaTime;
+            if (muzzleFlashTimer <= 0f)
+            {
+                muzzleFlash.SetActive(false);
+            }
+        }
+
         if (!IsOwner || !shouldFire) return;
+
+        if (Time.time < (1 / fireRate) + previousFireTime)
+        {
+            return;
+        }
 
         // Mensaje al servidor para que dispare e informe a los clientes
         PrimaryFireServerRpc(projectileSpawnPoint.position, projectileSpawnPoint.up);
 
         // Disparo local
         SpawnProjectile(projectileSpawnPoint.position, projectileSpawnPoint.up);
+
+        previousFireTime = Time.time;
     }
 
     private void HandlePrimaryFire(bool shouldFire)
@@ -55,6 +76,15 @@ public class ProjectileLauncher : NetworkBehaviour
 
         projectile.transform.up = direction;
 
+        // Ignorar colisión con el jugador
+        Physics2D.IgnoreCollision(playerCollider, projectile.GetComponent<Collider2D>());
+
+        // Aplicar velocidad al proyectil
+        if (projectile.TryGetComponent(out Rigidbody2D rb))
+        {
+            rb.velocity = direction * projectileSpeed;
+        }
+
         // Mensaje a los clientes para que disparen
         PrimaryFireClientRpc(position, direction);
     }
@@ -69,6 +99,9 @@ public class ProjectileLauncher : NetworkBehaviour
 
     private void SpawnProjectile(Vector3 position, Vector3 direction)
     {
+        muzzleFlash.SetActive(true);
+        muzzleFlashTimer = muzzleFlashDuration;
+
         GameObject projectile = Instantiate(
             clientProjectilePrefab,
             position,
@@ -76,5 +109,14 @@ public class ProjectileLauncher : NetworkBehaviour
         );
 
         projectile.transform.up = direction;
+
+        // Ignorar colisión con el jugador
+        Physics2D.IgnoreCollision(playerCollider, projectile.GetComponent<Collider2D>());
+
+        // Aplicar velocidad al proyectil
+        if (projectile.TryGetComponent(out Rigidbody2D rb))
+        {
+            rb.velocity = direction * projectileSpeed;
+        }
     }
 }
