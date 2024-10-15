@@ -8,10 +8,13 @@
 
 Juego 2D de tanques multijugador.
 
+<center>
+
+![WoT](Docs/wot.jpg)
+
+</center>
+
 #### Game Screen
 
 <center>
-
-![gameplay]()
-
 </center>
