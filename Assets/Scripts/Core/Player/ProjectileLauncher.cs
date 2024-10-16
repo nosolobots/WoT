@@ -79,6 +79,12 @@ public class ProjectileLauncher : NetworkBehaviour
         // Ignorar colisión con el jugador
         Physics2D.IgnoreCollision(playerCollider, projectile.GetComponent<Collider2D>());
 
+        // Asignar el dueño del proyectil
+        if (projectile.TryGetComponent<DealDamageInCombat>(out var dealDamageInCombat))
+        {
+            dealDamageInCombat.SetOwner(OwnerClientId);
+        }        
+
         // Aplicar velocidad al proyectil
         if (projectile.TryGetComponent(out Rigidbody2D rb))
         {
